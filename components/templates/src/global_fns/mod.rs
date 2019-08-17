@@ -242,7 +242,13 @@ impl TeraFn for GetPage {
         let library = self.library.read().unwrap();
         match library.get_page(&full_path) {
             Some(p) => Ok(to_value(p.to_serialized(&library)).unwrap()),
-            None => Err(format!("Page `{}` not found.", path).into()),
+            None => {
+                if full_path.exists() {
+                    Err(format!("Page `{}` exists as a file but is not loaded. Maybe it's a draft? Remember draft pages are ignored by the `build` command.", path).into())
+                } else {
+                    Err(format!("Page `{}` not found.", path).into())
+                }
+            }
         }
     }
 }
