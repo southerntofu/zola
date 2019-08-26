@@ -2,6 +2,7 @@ use std::env;
 use std::error::Error as StdError;
 use std::io::Write;
 use std::time::Instant;
+use lazy_static::lazy_static;
 
 use atty;
 use chrono::Duration;

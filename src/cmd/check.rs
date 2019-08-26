@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use errors::Result;
 use site::Site;
 
-use console;
+use crate::console;
 
 pub fn check(config_file: &str, base_path: Option<&str>, base_url: Option<&str>) -> Result<()> {
     let bp = base_path.map(PathBuf::from).unwrap_or_else(|| env::current_dir().unwrap());

@@ -9,6 +9,7 @@ homepage = "https://www.getzola.org"
 repository = "https://github.com/getzola/zola"
 keywords = ["static", "site", "generator", "blog"]
 # build = "build.rs"
+edition = "2018"
 
 [build-dependencies]
 clap = "2"
@@ -26,19 +27,22 @@ termcolor = "1.0.4"
 # Used in init to ensure the url given as base_url is a valid one
 url = "2"
 # Below is for the serve cmd
-actix-files = "0.1"
-actix-web = { version = "1.0", default-features = false, features = [] }
-notify = "4"
-ws = "0.9"
-ctrlc = "3"
-open = "1.2"
-globset = "0.4"
+actix-files = { version = "0.1", optional = true }
+actix-web = { version = "1.0", default-features = false, features = [], optional = true }
+notify = { version = "4", optional = true }
+ws = { version = "0.9", optional = true }
+ctrlc = { version = "3", optional = true }
+open = { version = "1.2", optional = true }
+globset = { version = "0.4", optional = true }
 
 site = { path = "components/site" }
 errors = { path = "components/errors" }
 front_matter = { path = "components/front_matter" }
 utils = { path = "components/utils" }
 rebuild = { path = "components/rebuild" }
+
+[features]
+serve = ["actix-files", "actix-web", "notify", "ws", "ctrlc", "open", "globset"]
 
 [workspace]
 members = [

@@ -1,4 +1,4 @@
-use clap::{App, AppSettings, Arg, SubCommand};
+use clap::{App, AppSettings, Arg, SubCommand, crate_version, crate_description, crate_authors};
 
 pub fn build_cli() -> App<'static, 'static> {
     App::new("zola")

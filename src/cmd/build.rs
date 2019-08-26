@@ -3,7 +3,7 @@ use std::env;
 use errors::Result;
 use site::Site;
 
-use console;
+use crate::console;
 
 pub fn build(config_file: &str, base_url: Option<&str>, output_dir: &str) -> Result<()> {
     let mut site = Site::new(env::current_dir().unwrap(), config_file)?;
