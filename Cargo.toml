@@ -42,6 +42,7 @@ utils = { path = "components/utils" }
 rebuild = { path = "components/rebuild" }
 
 [features]
+default = ["serve"]
 serve = ["actix-files", "actix-web", "notify", "ws", "ctrlc", "open", "globset"]
 
 [workspace]
