@@ -34,5 +34,19 @@ If your default language has an `_index.md` in a directory, you will need to add
 file with the desired front-matter options as there is no language fallback.
 
 ## Output
-Zola outputs the translated content with a base URL of `{base_url}/{code}/`.
-The only exception to this is if you are setting a translated page `path` directly in the front matter.
+Zola outputs the translated content with a base URL of `{base_url}/{code}/`, where code is the language name. The only exception to this is if you are setting a translated page `path`/`slug` directly in the front matter. Rules for output paths/URLs are described in more detail on the [page docs](@/documentation/content/page.md#output-paths).
+
+In particular, Zola does not respect UTF-8 characters in filenames and turns them to ASCII as part of it's slugification process. If you want full UTF8 support in content paths and in anchor links, you should disable all three forms of slugification [in the config](@/documentations/getting-started/configuration.md#slugification-strategies).
+
+```
+[slugify]
+paths = "off"
+
+
+```
+
+If you want to enable it, you need to disable path slugification in the site configuration:
+
+```
+
+```

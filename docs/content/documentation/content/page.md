@@ -29,16 +29,20 @@ the `about` directory allows you to use asset co-location, as discussed in the
 
 ## Output paths
 
-For any page within your content folder, its output path will be defined by either:
+TODO: Output paths/URLs are explained in a dedicated section.
 
-- its `slug` frontmatter key
-- its filename
+Output paths for pages take the form of `{base_url}[/{code}]/{path}` where the code part is optional. In most cases, base_url will be defined in your config file, and path will be defined by the names of the files in the content folder. However, in more complex setups:
 
-Either way, these proposed path will be sanitized before being used.
-If `slugify_paths` is enabled in the site's config - the default - paths are [slugified](https://en.wikipedia.org/wiki/Clean_URL#Slug). 
-Otherwise, a simpler sanitation is performed, outputting only valid NTFS paths. 
-The following characters are removed: `<`, `>`, `:`, `/`, `|`, `?`, `*`, `#`, `\\`, `(`, `)`, `[`, `]` as well as newlines and tabulations. 
-Additionally, trailing whitespace and dots are removed and whitespaces are replaced by `_`.
+- base_url is either the `-u` parameter passed to zola, or the config's `base_url` (in this order)
+- code is the current language's code; this part is omitted when the current language matches the config's `default_lang`
+- path is generated according to the rules explained below
+
+The path of a page is defined by one of the following, in this order:
+
+1. its `path` frontmatter key, if any
+2. its `slug` frontmatter key, if any
+3. the config's [slugification rules](@/documentations/getting-started/configuration.md#slugification-strategies (default)
+3. its filename, when slugify's `paths` is "off"
 
 **NOTE:** To produce URLs containing non-English characters (UTF8), `slugify_paths` needs to be set to `false`.
 
