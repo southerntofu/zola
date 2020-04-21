@@ -1,16 +1,12 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 
 use tera::{from_value, to_value, Error, Function as TeraFn, Result, Value};
 
 use config::Config;
-use image;
-use image::GenericImageView;
 use library::{Library, Taxonomy};
 use utils::site::resolve_internal_link;
-
-use imageproc;
 
 #[macro_use]
 mod macros;
@@ -86,95 +82,6 @@ impl TeraFn for GetUrl {
             }
             Ok(to_value(permalink).unwrap())
         }
-    }
-}
-
-#[derive(Debug)]
-pub struct ResizeImage {
-    imageproc: Arc<Mutex<imageproc::Processor>>,
-}
-impl ResizeImage {
-    pub fn new(imageproc: Arc<Mutex<imageproc::Processor>>) -> Self {
-        Self { imageproc }
-    }
-}
-
-static DEFAULT_OP: &str = "fill";
-static DEFAULT_FMT: &str = "auto";
-const DEFAULT_Q: u8 = 75;
-
-impl TeraFn for ResizeImage {
-    fn call(&self, args: &HashMap<String, Value>) -> Result<Value> {
-        let path = required_arg!(
-            String,
-            args.get("path"),
-            "`resize_image` requires a `path` argument with a string value"
-        );
-        let width = optional_arg!(
-            u32,
-            args.get("width"),
-            "`resize_image`: `width` must be a non-negative integer"
-        );
-        let height = optional_arg!(
-            u32,
-            args.get("height"),
-            "`resize_image`: `height` must be a non-negative integer"
-        );
-        let op = optional_arg!(String, args.get("op"), "`resize_image`: `op` must be a string")
-            .unwrap_or_else(|| DEFAULT_OP.to_string());
-
-        let format =
-            optional_arg!(String, args.get("format"), "`resize_image`: `format` must be a string")
-                .unwrap_or_else(|| DEFAULT_FMT.to_string());
-
-        let quality =
-            optional_arg!(u8, args.get("quality"), "`resize_image`: `quality` must be a number")
-                .unwrap_or(DEFAULT_Q);
-        if quality == 0 || quality > 100 {
-            return Err("`resize_image`: `quality` must be in range 1-100".to_string().into());
-        }
-
-        let mut imageproc = self.imageproc.lock().unwrap();
-        if !imageproc.source_exists(&path) {
-            return Err(format!("`resize_image`: Cannot find path: {}", path).into());
-        }
-
-        let imageop = imageproc::ImageOp::from_args(path, &op, width, height, &format, quality)
-            .map_err(|e| format!("`resize_image`: {}", e))?;
-        let url = imageproc.insert(imageop);
-
-        to_value(url).map_err(|err| err.into())
-    }
-}
-
-#[derive(Debug)]
-pub struct GetImageMeta {
-    content_path: PathBuf,
-}
-
-impl GetImageMeta {
-    pub fn new(content_path: PathBuf) -> Self {
-        Self { content_path }
-    }
-}
-
-impl TeraFn for GetImageMeta {
-    fn call(&self, args: &HashMap<String, Value>) -> Result<Value> {
-        let path = required_arg!(
-            String,
-            args.get("path"),
-            "`get_image_metadata` requires a `path` argument with a string value"
-        );
-        let src_path = self.content_path.join(&path);
-        if !src_path.exists() {
-            return Err(format!("`get_image_metadata`: Cannot find path: {}", path).into());
-        }
-        let img = image::open(&src_path)
-            .map_err(|e| Error::chain(format!("Failed to process image: {}", path), e))?;
-        let mut map = tera::Map::new();
-        map.insert(String::from("height"), Value::Number(tera::Number::from(img.height())));
-        map.insert(String::from("width"), Value::Number(tera::Number::from(img.width())));
-        Ok(Value::Object(map))
     }
 }
 

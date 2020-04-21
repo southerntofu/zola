@@ -49,45 +49,6 @@ pub fn build_cli() -> App<'static, 'static> {
                         .takes_value(false)
                         .help("Include drafts when loading the site"),
                 ]),
-            SubCommand::with_name("serve")
-                .about("Serve the site. Rebuild and reload on change automatically")
-                .args(&[
-                    Arg::with_name("interface")
-                        .short("i")
-                        .long("interface")
-                        .default_value("127.0.0.1")
-                        .help("Interface to bind on"),
-                    Arg::with_name("port")
-                        .short("p")
-                        .long("port")
-                        .default_value("1111")
-                        .help("Which port to use"),
-                    Arg::with_name("output_dir")
-                        .short("o")
-                        .long("output-dir")
-                        .default_value("public")
-                        .takes_value(true)
-                        .help("Outputs the generated site in the given path"),
-                    Arg::with_name("base_url")
-                        .short("u")
-                        .long("base-url")
-                        .default_value("127.0.0.1")
-                        .takes_value(true)
-                        .help("Changes the base_url"),
-                    Arg::with_name("watch_only")
-                        .long("watch-only")
-                        .takes_value(false)
-                        .help("Do not start a server, just re-build project on changes"),
-                    Arg::with_name("drafts")
-                        .long("drafts")
-                        .takes_value(false)
-                        .help("Include drafts when loading the site"),
-                    Arg::with_name("open")
-                        .short("O")
-                        .long("open")
-                        .takes_value(false)
-                        .help("Open site in the default browser"),
-                ]),
             SubCommand::with_name("check")
                 .about("Try building the project without rendering it. Checks links")
                 .args(&[

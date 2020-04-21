@@ -2,8 +2,6 @@ use std::env;
 use std::path::PathBuf;
 use std::time::Instant;
 
-use utils::net::{get_available_port, port_is_available};
-
 mod cli;
 mod cmd;
 mod console;
@@ -42,54 +40,6 @@ fn main() {
                 Ok(()) => console::report_elapsed_time(start),
                 Err(e) => {
                     console::unravel_errors("Failed to build the site", &e);
-                    ::std::process::exit(1);
-                }
-            };
-        }
-        ("serve", Some(matches)) => {
-            let interface = matches.value_of("interface").unwrap_or("127.0.0.1");
-            let mut port: u16 = match matches.value_of("port").unwrap().parse() {
-                Ok(x) => x,
-                Err(_) => {
-                    console::error("The request port needs to be an integer");
-                    ::std::process::exit(1);
-                }
-            };
-            let watch_only = matches.is_present("watch_only");
-            let open = matches.is_present("open");
-            let include_drafts = matches.is_present("drafts");
-
-            // Default one
-            if port != 1111 && !watch_only && !port_is_available(port) {
-                console::error("The requested port is not available");
-                ::std::process::exit(1);
-            }
-
-            if !watch_only && !port_is_available(port) {
-                port = if let Some(p) = get_available_port(1111) {
-                    p
-                } else {
-                    console::error("No port available.");
-                    ::std::process::exit(1);
-                }
-            }
-            let output_dir = matches.value_of("output_dir").unwrap();
-            let base_url = matches.value_of("base_url").unwrap();
-            console::info("Building site...");
-            match cmd::serve(
-                &root_dir,
-                interface,
-                port,
-                output_dir,
-                base_url,
-                config_file,
-                watch_only,
-                open,
-                include_drafts,
-            ) {
-                Ok(()) => (),
-                Err(e) => {
-                    console::unravel_errors("", &e);
                     ::std::process::exit(1);
                 }
             };

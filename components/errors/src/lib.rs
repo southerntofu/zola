@@ -8,7 +8,6 @@ pub enum ErrorKind {
     Tera(tera::Error),
     Io(::std::io::Error),
     Toml(toml::de::Error),
-    Image(image::ImageError),
     Syntect(syntect::LoadingError),
 }
 
@@ -42,7 +41,6 @@ impl fmt::Display for Error {
             ErrorKind::Tera(ref e) => write!(f, "{}", e),
             ErrorKind::Io(ref e) => write!(f, "{}", e),
             ErrorKind::Toml(ref e) => write!(f, "{}", e),
-            ErrorKind::Image(ref e) => write!(f, "{}", e),
             ErrorKind::Syntect(ref e) => write!(f, "{}", e),
         }
     }
@@ -102,11 +100,7 @@ impl From<::std::io::Error> for Error {
         Self { kind: ErrorKind::Io(e), source: None }
     }
 }
-impl From<image::ImageError> for Error {
-    fn from(e: image::ImageError) -> Self {
-        Self { kind: ErrorKind::Image(e), source: None }
-    }
-}
+
 /// Convenient wrapper around std::Result.
 pub type Result<T> = ::std::result::Result<T, Error>;
 

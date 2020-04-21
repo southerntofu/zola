@@ -25,38 +25,26 @@ lazy_static = "1.1.0"
 termcolor = "1.0.4"
 # Used in init to ensure the url given as base_url is a valid one
 url = "2"
-# Below is for the serve cmd
-hyper = { version = "0.13", default-features = false, features = ["runtime"] }
-hyper-staticfile = "0.5"
-tokio = { version = "0.2", default-features = false, features = [] }
-notify = "4"
-ws = "0.9"
-ctrlc = "3"
-open = "1.2"
-globset = "0.4"
 
 site = { path = "components/site" }
 errors = { path = "components/errors" }
 front_matter = { path = "components/front_matter" }
 utils = { path = "components/utils" }
-rebuild = { path = "components/rebuild" }
 
 [workspace]
 members = [
     "components/config",
     "components/errors",
     "components/front_matter",
-    "components/rebuild",
     "components/rendering",
     "components/site",
     "components/templates",
     "components/utils",
-    "components/search",
-    "components/imageproc",
-    "components/link_checker",
     "components/library",
 ]
 
 [profile.release]
 lto = true
 codegen-units = 1
+opt-level = 'z'
+panic = "abort"

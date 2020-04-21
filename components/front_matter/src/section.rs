@@ -45,10 +45,6 @@ pub struct SectionFrontMatter {
     /// landing on the root section page
     #[serde(skip_serializing)]
     pub redirect_to: Option<String>,
-    /// Whether the section content and its pages/subsections are included in the index.
-    /// Defaults to `true` but is only used if search if explicitly enabled in the config.
-    #[serde(skip_serializing)]
-    pub in_search_index: bool,
     /// Whether the section should pass its pages on to the parent section. Defaults to `false`.
     /// Useful when the section shouldn't split up the parent section, like
     /// sections for each year under a posts section.
@@ -102,7 +98,6 @@ impl Default for SectionFrontMatter {
             render: true,
             redirect_to: None,
             insert_anchor_links: InsertAnchor::None,
-            in_search_index: true,
             transparent: false,
             page_template: None,
             aliases: Vec::new(),

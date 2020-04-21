@@ -46,10 +46,6 @@ pub struct PageFrontMatter {
     /// Specify a template different from `page.html` to use for that page
     #[serde(skip_serializing)]
     pub template: Option<String>,
-    /// Whether the page is included in the search index
-    /// Defaults to `true` but is only used if search if explicitly enabled in the config.
-    #[serde(skip_serializing)]
-    pub in_search_index: bool,
     /// Any extra parameter present in the front matter
     pub extra: Map<String, Value>,
 }
@@ -127,7 +123,6 @@ impl Default for PageFrontMatter {
             order: None,
             weight: None,
             aliases: Vec::new(),
-            in_search_index: true,
             template: None,
             extra: Map::new(),
         }

@@ -91,9 +91,6 @@ pub fn create_new_project(name: &str) -> Result<()> {
     println!();
     console::success(&format!("Done! Your site was created in {:?}", canonicalize(path).unwrap()));
     println!();
-    console::info(
-        "Get started by moving into the directory and using the built-in server: `zola serve`",
-    );
     println!("Visit https://www.getzola.org for the full documentation.");
     Ok(())
 }

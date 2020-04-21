@@ -186,8 +186,6 @@ pub struct Config {
     #[serde(skip_serializing, skip_deserializing)] // not a typo, 2 are need
     pub extra_syntax_set: Option<SyntaxSet>,
 
-    pub link_checker: LinkChecker,
-
     /// The setup for which slugification strategies to use for paths, taxonomies and anchors
     pub slugify: Slugify,
 
@@ -392,7 +390,6 @@ impl Default for Config {
             translations: HashMap::new(),
             extra_syntaxes: Vec::new(),
             extra_syntax_set: None,
-            link_checker: LinkChecker::default(),
             slugify: Slugify::default(),
             extra: HashMap::new(),
             build_timestamp: Some(1),

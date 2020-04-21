@@ -19,7 +19,6 @@ errors = { path = "../errors" }
 front_matter = { path = "../front_matter" }
 utils = { path = "../utils" }
 config = { path = "../config" }
-link_checker = { path = "../link_checker" }
 
 [dev-dependencies]
 templates = { path = "../templates" }

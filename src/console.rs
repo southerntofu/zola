@@ -53,11 +53,10 @@ fn colorize(message: &str, color: &ColorSpec) {
 pub fn notify_site_size(site: &Site) {
     let library = site.library.read().unwrap();
     println!(
-        "-> Creating {} pages ({} orphan), {} sections, and processing {} images",
+        "-> Creating {} pages ({} orphan), {} sections",
         library.pages().len(),
         site.get_number_orphan_pages(),
         library.sections().len() - 1, // -1 since we do not count the index as a section there
-        site.num_img_ops(),
     );
 }
 

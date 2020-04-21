@@ -1,7 +1,6 @@
 use utils::de::fix_toml_dates;
 use utils::fs::{get_file_time, is_path_in_directory, read_file};
 
-use reqwest::{blocking::Client, header};
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
@@ -16,7 +15,7 @@ use std::collections::HashMap;
 use tera::{from_value, to_value, Error, Function as TeraFn, Map, Result, Value};
 
 static GET_DATA_ARGUMENT_ERROR_MESSAGE: &str =
-    "`load_data`: requires EITHER a `path` or `url` argument";
+    "`load_data`: requires a `path` argument (no URL support here)";
 
 enum DataSource {
     Url(Url),
@@ -54,17 +53,6 @@ impl FromStr for OutputFormat {
             "plain" => Ok(OutputFormat::Plain),
             format => Err(format!("Unknown output format {}", format).into()),
         }
-    }
-}
-
-impl OutputFormat {
-    fn as_accept_header(&self) -> header::HeaderValue {
-        header::HeaderValue::from_static(match self {
-            OutputFormat::Json => "application/json",
-            OutputFormat::Csv => "text/csv",
-            OutputFormat::Toml => "application/toml",
-            OutputFormat::Plain => "text/plain",
-        })
     }
 }
 
@@ -173,19 +161,12 @@ fn get_output_format_from_args(
 #[derive(Debug)]
 pub struct LoadData {
     base_path: PathBuf,
-    client: Arc<Mutex<Client>>,
     result_cache: Arc<Mutex<HashMap<u64, Value>>>,
 }
 impl LoadData {
     pub fn new(base_path: PathBuf) -> Self {
-        let client = Arc::new(Mutex::new(
-            Client::builder()
-                .user_agent(concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION")))
-                .build()
-                .expect("reqwest client build"),
-        ));
         let result_cache = Arc::new(Mutex::new(HashMap::new()));
-        Self { base_path, client, result_cache }
+        Self { base_path, result_cache }
     }
 }
 
@@ -194,31 +175,16 @@ impl TeraFn for LoadData {
         let data_source = get_data_source_from_args(&self.base_path, &args)?;
         let file_format = get_output_format_from_args(&args, &data_source)?;
         let cache_key = data_source.get_cache_key(&file_format);
-
         let mut cache = self.result_cache.lock().expect("result cache lock");
-        let response_client = self.client.lock().expect("response client lock");
+
         if let Some(cached_result) = cache.get(&cache_key) {
             return Ok(cached_result.clone());
         }
 
         let data = match data_source {
             DataSource::Path(path) => read_data_file(&self.base_path, path),
-            DataSource::Url(url) => {
-                let response = response_client
-                    .get(url.as_str())
-                    .header(header::ACCEPT, file_format.as_accept_header())
-                    .send()
-                    .and_then(|res| res.error_for_status())
-                    .map_err(|e| {
-                        format!(
-                            "Failed to request {}: {}",
-                            url,
-                            e.status().expect("response status")
-                        )
-                    })?;
-                response
-                    .text()
-                    .map_err(|e| format!("Failed to parse response from {}: {:?}", url, e).into())
+            DataSource::Url(_) => {
+                Err(format!("URLs are unsupported for load_data in this version of zola!").into())
             }
         }?;
 

@@ -3,7 +3,7 @@ pub mod sitemap;
 use std::collections::HashMap;
 use std::fs::{copy, create_dir_all, remove_dir_all};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 
 use glob::glob;
 use rayon::prelude::*;
@@ -16,7 +16,6 @@ use front_matter::InsertAnchor;
 use library::{
     find_taxonomies, sort_actual_pages_by_date, Library, Page, Paginator, Section, Taxonomy,
 };
-use link_checker::check_url;
 use templates::{global_fns, render_redirect_template, ZOLA_TERA};
 use utils::fs::{copy_directory, create_directory, create_file, ensure_directory_exists};
 use utils::net::get_available_port;
@@ -29,7 +28,6 @@ pub struct Site {
     /// The parsed config for the site
     pub config: Config,
     pub tera: Tera,
-    imageproc: Arc<Mutex<imageproc::Processor>>,
     // the live reload port to be used if there is one
     pub live_reload: Option<u16>,
     pub output_path: PathBuf,
@@ -99,14 +97,11 @@ impl Site {
 
         let content_path = path.join("content");
         let static_path = path.join("static");
-        let imageproc =
-            imageproc::Processor::new(content_path.clone(), &static_path, &config.base_url);
 
         let site = Site {
             base_path: path.to_path_buf(),
             config,
             tera,
-            imageproc: Arc::new(Mutex::new(imageproc)),
             live_reload: None,
             output_path: path.join("public"),
             content_path,
@@ -153,8 +148,6 @@ impl Site {
     }
 
     pub fn set_base_url(&mut self, base_url: String) {
-        let mut imageproc = self.imageproc.lock().expect("Couldn't lock imageproc (set_base_url)");
-        imageproc.set_base_url(&base_url);
         self.config.base_url = base_url;
     }
 
@@ -252,10 +245,6 @@ impl Site {
         // Needs to be done after rendering markdown as we only get the anchors at that point
         self.check_internal_links_with_anchors()?;
 
-        if self.config.is_in_check_mode() {
-            self.check_external_links()?;
-        }
-
         Ok(())
     }
 
@@ -350,100 +339,10 @@ impl Site {
         Err(Error { kind: ErrorKind::Msg(msg), source: None })
     }
 
-    pub fn check_external_links(&self) -> Result<()> {
-        let library = self.library.write().expect("Get lock for check_external_links");
-        let page_links = library
-            .pages()
-            .values()
-            .map(|p| {
-                let path = &p.file.path;
-                p.external_links.iter().map(move |l| (path.clone(), l))
-            })
-            .flatten();
-        let section_links = library
-            .sections()
-            .values()
-            .map(|p| {
-                let path = &p.file.path;
-                p.external_links.iter().map(move |l| (path.clone(), l))
-            })
-            .flatten();
-        let all_links = page_links.chain(section_links).collect::<Vec<_>>();
-        println!("Checking {} external link(s).", all_links.len());
-
-        if all_links.is_empty() {
-            return Ok(());
-        }
-
-        // create thread pool with lots of threads so we can fetch
-        // (almost) all pages simultaneously
-        let threads = std::cmp::min(all_links.len(), 32);
-        let pool = rayon::ThreadPoolBuilder::new()
-            .num_threads(threads)
-            .build()
-            .map_err(|e| Error { kind: ErrorKind::Msg(e.to_string()), source: None })?;
-
-        let errors: Vec<_> = pool.install(|| {
-            all_links
-                .par_iter()
-                .filter_map(|(page_path, link)| {
-                    if self
-                        .config
-                        .link_checker
-                        .skip_prefixes
-                        .iter()
-                        .any(|prefix| link.starts_with(prefix))
-                    {
-                        return None;
-                    }
-                    let res = check_url(&link, &self.config.link_checker);
-                    if res.is_valid() {
-                        None
-                    } else {
-                        Some((page_path, link, res))
-                    }
-                })
-                .collect()
-        });
-
-        println!(
-            "> Checked {} external link(s): {} error(s) found.",
-            all_links.len(),
-            errors.len()
-        );
-
-        if errors.is_empty() {
-            return Ok(());
-        }
-
-        let msg = errors
-            .into_iter()
-            .map(|(page_path, link, check_res)| {
-                format!(
-                    "Dead link in {} to {}: {}",
-                    page_path.to_string_lossy(),
-                    link,
-                    check_res.message()
-                )
-            })
-            .collect::<Vec<_>>()
-            .join("\n");
-        Err(Error { kind: ErrorKind::Msg(msg), source: None })
-    }
-
     /// Insert a default index section for each language if necessary so we don't need to create
     /// a _index.md to render the index page at the root of the site
     pub fn create_default_index_sections(&mut self) -> Result<()> {
         for (index_path, lang) in self.index_section_paths() {
-            if let Some(ref index_section) = self.library.read().unwrap().get_section(&index_path) {
-                if self.config.build_search_index && !index_section.meta.in_search_index {
-                    bail!(
-                    "You have enabled search in the config but disabled it in the index section: \
-                    either turn off the search in the config or remote `in_search_index = true` from the \
-                    section front-matter."
-                    )
-                }
-            }
             let mut library = self.library.write().expect("Get lock for load");
             // Not in else because of borrow checker
             if !library.contains_section(&index_path) {
@@ -519,14 +418,6 @@ impl Site {
         self.tera.register_function(
             "get_url",
             global_fns::GetUrl::new(self.config.clone(), self.permalinks.clone()),
-        );
-        self.tera.register_function(
-            "resize_image",
-            global_fns::ResizeImage::new(self.imageproc.clone()),
-        );
-        self.tera.register_function(
-            "get_image_metadata",
-            global_fns::GetImageMeta::new(self.content_path.clone()),
         );
         self.tera.register_function("load_data", global_fns::LoadData::new(self.base_path.clone()));
         self.tera.register_function("trans", global_fns::Trans::new(self.config.clone()));
@@ -658,18 +549,6 @@ impl Site {
         Ok(())
     }
 
-    pub fn num_img_ops(&self) -> usize {
-        let imageproc = self.imageproc.lock().expect("Couldn't lock imageproc (num_img_ops)");
-        imageproc.num_img_ops()
-    }
-
-    pub fn process_images(&self) -> Result<()> {
-        let mut imageproc =
-            self.imageproc.lock().expect("Couldn't lock imageproc (process_images)");
-        imageproc.prune()?;
-        imageproc.do_process()
-    }
-
     /// Deletes the `public` directory if it exists
     pub fn clean(&self) -> Result<()> {
         if self.output_path.exists() {
@@ -732,10 +611,6 @@ impl Site {
             self.compile_sass(&self.base_path)?;
         }
 
-        if self.config.build_search_index {
-            self.build_search_index()?;
-        }
-
         // Render aliases first to allow overwriting
         self.render_aliases()?;
         self.render_sections()?;
@@ -769,40 +644,7 @@ impl Site {
         self.render_404()?;
         self.render_robots()?;
         self.render_taxonomies()?;
-        // We process images at the end as we might have picked up images to process from markdown
-        // or from templates
-        self.process_images()?;
-        // Processed images will be in static so the last step is to copy it
         self.copy_static_directories()?;
-
-        Ok(())
-    }
-
-    pub fn build_search_index(&self) -> Result<()> {
-        ensure_directory_exists(&self.output_path)?;
-        // index first
-        create_file(
-            &self.output_path.join(&format!("search_index.{}.js", self.config.default_language)),
-            &format!(
-                "window.searchIndex = {};",
-                search::build_index(&self.config.default_language, &self.library.read().unwrap())?
-            ),
-        )?;
-
-        for language in &self.config.languages {
-            if language.code != self.config.default_language && language.search {
-                create_file(
-                    &self.output_path.join(&format!("search_index.{}.js", &language.code)),
-                    &format!(
-                        "window.searchIndex = {};",
-                        search::build_index(&language.code, &self.library.read().unwrap())?
-                    ),
-                )?;
-            }
-        }
-
-        // then elasticlunr.min.js
-        create_file(&self.output_path.join("elasticlunr.min.js"), search::ELASTICLUNR_JS)?;
 
         Ok(())
     }
