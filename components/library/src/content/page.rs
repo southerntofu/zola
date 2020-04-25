@@ -264,7 +264,7 @@ impl Page {
         anchor_insert: InsertAnchor,
     ) -> Result<()> {
         let mut context =
-            RenderContext::new(tera, config, &self.permalink, permalinks, anchor_insert);
+            RenderContext::new(tera, config, &self.permalink, permalinks, anchor_insert, &self.lang);
 
         context.tera_context.insert("page", &SerializingPage::from_page_basic(self, None));
 
