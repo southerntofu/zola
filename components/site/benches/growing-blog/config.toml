@@ -1,0 +1,12 @@
+
+title = "My site"
+base_url = "https://replace-this-with-your-url.com"
+theme = "sample"
+
+taxonomies = [
+ {name = "tags", feed = true}, 
+ {name = "categories"}
+]
+
+[extra.author]
+name = "Vincent Prouillet"
