@@ -89,6 +89,31 @@ fn is_external_link(link: &str) -> bool {
     link.starts_with("http:") || link.starts_with("https:")
 }
 
+/// Takes a relative link from the current page (whether in a link or an image tag)
+/// and resolves it to:
+///   - the page permalink, stripped from trailing /index.html, with link appended, when
+///   context.index is true (eg. _index.md or index.md file, so assets will be copied over
+///   to the same output folder)
+///   - the page permalink, stripped from trailing/index.html as well as the previous component,
+///   with link appended, otherwise (will produce link to the asset in the parent section)
+fn resolve_asset(link: &str, context: &RenderContext) -> String {
+    if context.is_index {
+        format!("{}{}", context.current_page_permalink, link)
+    } else {
+        // We calculate where the before-last / is, because:
+        //   - permalink ends with /, leading to the page's output folder (where produced page is
+        //   index.html)
+        //   - we want to link to the parent section's folder so strip the component before the
+        //   last /
+        let parent_slash_index = context.current_page_permalink.get(0..context.current_page_permalink.len() - 1).unwrap().rfind('/').unwrap();
+        format!("{}/{}",
+            // The two last / and the (page) component in between are dropped
+            context.current_page_permalink.get(0..parent_slash_index).unwrap(),
+            link
+        )
+    }
+}
+
 fn fix_link(
     link_type: LinkType,
     link: &str,
@@ -123,21 +148,13 @@ fn fix_link(
             }
         }
     } else if is_colocated_asset_link(&link) {
-        if context.is_index {
-            format!("{}{}", context.current_page_permalink, link)
-        } else {
-            // The last slash is the page folder, not parent folder
-            let parent_slash_index = context.current_page_permalink.get(0..context.current_page_permalink.len() - 1).unwrap().rfind('/').unwrap();
-            format!("{}/{}",
-                // Does not include the slash because the range excludes parent_slash_index 
-                context.current_page_permalink.get(0..parent_slash_index).unwrap(),
-                link
-            )
-        }
+        // Link does not contain protocol or slashes, resolve as an asset
+        resolve_asset(link, context)
     } else {
         if is_external_link(link) {
             external_links.push(link.to_owned());
         }
+        println!("not asset: {}", link);
         link.to_string()
     };
     Ok(result)
@@ -256,7 +273,7 @@ pub fn markdown_to_html(content: &str, context: &RenderContext) -> Result<Render
                     }
                     Event::Start(Tag::Image(link_type, src, title)) => {
                         if is_colocated_asset_link(&src) {
-                            let link = format!("{}{}", context.current_page_permalink, &*src);
+                            let link = resolve_asset(&src, &context);
                             return Event::Start(Tag::Image(link_type, link.into(), title));
                         }
 
