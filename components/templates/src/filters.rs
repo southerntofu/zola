@@ -27,15 +27,59 @@ impl MarkdownFilter {
 
 impl TeraFilter for MarkdownFilter {
     fn filter(&self, value: &Value, args: &HashMap<String, Value>) -> TeraResult<Value> {
-        let mut context = RenderContext::from_config(&self.config);
-        context.permalinks = Cow::Borrowed(&self.permalinks);
-        context.tera = Cow::Borrowed(&self.tera);
 
         let s = try_get_value!("markdown", "value", String, value);
         let inline = match args.get("inline") {
             Some(val) => try_get_value!("markdown", "inline", bool, val),
             None => false,
         };
+
+        let mut context = RenderContext::from_config(&self.config);
+        context.permalinks = Cow::Borrowed(&self.permalinks);
+        context.tera = Cow::Borrowed(&self.tera);
+
+        if let Some(val) = args.get("context") {
+            // Theoretically, we'd like to expect a Map<String, Value>
+            // However, there's no map literal in tera, no map manipulation functions in tera
+            // and __tera_context magic variable is a pretty string not a Map<String, Value>
+            /*
+            let arg_context = try_get_value!("markdown", "context", Map<String, Value>, val);
+            for (k, v) in &arg_context {
+                context.tera_context.insert(k, v);
+            }
+            */
+            // so Vec<Vec<Value>> is just a hack really.
+            // Each entry is a two-items list containing: the key name to insert, and its
+            // actual value. That does not work
+            /*
+            let arg_context = try_get_value!("markdown", "context", Vec<Vec<Value>>, val);
+            for entry in arg_context {
+                assert_eq!(2, entry.len());
+                let key = entry.first().unwrap().as_str().unwrap();
+                let val = entry.last().unwrap().as_object().unwrap();
+                context.tera_context.insert(key, val);
+            }
+            */
+            // However this is not working either
+            // because i could not find how to make a Vec<Vec<Value>> from the templates themselves
+            // so let's go with the hackier Vec<Value>
+            let mut key: Option<String> = None;
+            let arg_context = try_get_value!("markdown", "context", Vec<Value>, val);
+            // let's check we have two * n entries where each entry is alternatively,
+            // a key name, or the value to store inside
+            assert_eq!(0, arg_context.len() % 2);
+            for entry in arg_context {
+                if key.is_some() {
+                    let k = key.unwrap();
+                    key = None;
+                    // k is previously-found key, new entry is the corresponding value
+                    context.tera_context.insert(k, &entry);
+                } else {
+                    key = Some(entry.as_str().expect("The key name should be a string. Make sure you haven't mixed the order of a key and corresponding value to insert in the context").to_string());
+                }
+            }
+        }
+
         let mut html = match render_content(&s, &context) {
             Ok(res) => res.body,
             Err(e) => return Err(format!("Failed to render markdown filter: {:?}", e).into()),

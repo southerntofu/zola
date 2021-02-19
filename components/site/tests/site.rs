@@ -120,6 +120,9 @@ fn can_build_site_without_live_reload() {
     assert!(file_exists!(public, "posts/tutorials/devops/nix/index.html"));
     assert!(file_exists!(public, "posts/with-assets/index.html"));
     assert!(file_exists!(public, "posts/no-section/simple/index.html"));
+    // Markdown filter can inherit context via argument
+    // see https://github.com/getzola/zola/pull/1358
+    assert!(file_contains!(public, "index.html", "<h1 id=\"shortcode-context\">Index</h1>"));
 
     // Sections
     assert!(file_exists!(public, "posts/index.html"));

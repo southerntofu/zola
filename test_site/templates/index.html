@@ -12,7 +12,8 @@
     <p> <<< </p>
 
     <!-- Test that the markdown filter can access shortcodes -->
-    {{ "{{ access_context() }}" | markdown | safe }}
+    {% set context = [ "section", section ] %}
+    {{ "{{ access_context() }}" | markdown(context=context) | safe }}
 {% endblock content %}
 
 {% block script %}
