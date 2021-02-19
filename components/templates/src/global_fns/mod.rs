@@ -46,6 +46,24 @@ impl TeraFn for Trans {
 }
 
 #[derive(Debug)]
+pub struct NewMap;
+
+impl NewMap {
+    pub fn new() -> Self { NewMap }
+}
+
+impl TeraFn for NewMap {
+    fn call(&self, args: &HashMap<String, Value>) -> Result<Value> {
+        let key = required_arg!(String, args.get("key"), "`newmap` requires a `key` string argument.");
+        let value = required_arg!(Value, args.get("value"), "`newmap` requires a `value` argument.");
+
+        let mut map = HashMap::new();
+        map.insert(key, value);
+        Ok(to_value(map)?)
+    }
+}
+
+#[derive(Debug)]
 pub struct GetUrl {
     config: Config,
     permalinks: HashMap<String, String>,

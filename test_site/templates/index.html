@@ -12,7 +12,8 @@
     <p> <<< </p>
 
     <!-- Test that the markdown filter can access shortcodes -->
-    {% set context = [ "section", section ] %}
+    {#{% set context = [ "section", section ] %}#}
+    {% set context = newmap(key="section", value=section) %}
     {{ "{{ access_context() }}" | markdown(context=context) | safe }}
 {% endblock content %}
 

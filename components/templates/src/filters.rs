@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use base64::{decode, encode};
 use config::Config;
 use rendering::{render_content, RenderContext};
-use tera::{Filter as TeraFilter, Result as TeraResult, Tera, Value, to_value, try_get_value};
+use tera::{Filter as TeraFilter, Result as TeraResult, Tera, Value, to_value, try_get_value, Map};
 
 use crate::load_tera;
 
@@ -42,12 +42,12 @@ impl TeraFilter for MarkdownFilter {
             // Theoretically, we'd like to expect a Map<String, Value>
             // However, there's no map literal in tera, no map manipulation functions in tera
             // and __tera_context magic variable is a pretty string not a Map<String, Value>
-            /*
+            
             let arg_context = try_get_value!("markdown", "context", Map<String, Value>, val);
             for (k, v) in &arg_context {
                 context.tera_context.insert(k, v);
             }
-            */
+            
             // so Vec<Vec<Value>> is just a hack really.
             // Each entry is a two-items list containing: the key name to insert, and its
             // actual value. That does not work
@@ -63,6 +63,7 @@ impl TeraFilter for MarkdownFilter {
             // However this is not working either
             // because i could not find how to make a Vec<Vec<Value>> from the templates themselves
             // so let's go with the hackier Vec<Value>
+            /* OK let's try again Map<String, Value> with newmap() template function
             let mut key: Option<String> = None;
             let arg_context = try_get_value!("markdown", "context", Vec<Value>, val);
             // let's check we have two * n entries where each entry is alternatively,
@@ -78,6 +79,7 @@ impl TeraFilter for MarkdownFilter {
                     key = Some(entry.as_str().expect("The key name should be a string. Make sure you haven't mixed the order of a key and corresponding value to insert in the context").to_string());
                 }
             }
+            */
         }
 
         let mut html = match render_content(&s, &context) {

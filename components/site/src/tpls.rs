@@ -14,6 +14,11 @@ pub fn register_early_global_fns(site: &mut Site) -> TeraResult<()> {
     );
 
     site.tera.register_function(
+        "newmap",
+        global_fns::NewMap::new(),
+    );
+
+    site.tera.register_function(
         "get_url",
         global_fns::GetUrl::new(
             site.config.clone(),
